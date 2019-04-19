@@ -1,8 +1,10 @@
-import { WorldInteractable, ActionState } from "../main";
+import { WorldInteractable, ActionState, TransitionState } from "../main";
 
 export default {
+    "id": "1st floor",
     "states": {
         "initial": {
+            "onActivate": "Your`re standing in the entrance of a apartment building. There is a zombie outside.",
             "description": "Your`re standing in the entrance of a apartment building."
         }
     },
@@ -10,10 +12,13 @@ export default {
         "letterbox": {
             "states": {
                 "locked": {
-                    "description": "A letterbox. It's locked."
+                    "description": "A letterbox mounted to the wall. It's locked.",
+                    "items": {
+                        "screw": {}
+                    }
                 },
                 "unlocked": {
-                    "onActivate": "you unlocked the letterbox",
+                    "onActivate": "You unlocked the letterbox",
                     "description": "it's unlocked",
                     "items": {
                         "letter": {}
@@ -21,57 +26,42 @@ export default {
                 }
             },
             "actions": {
-                "check": (state:ActionState): string => {
-                    console.log(state.itemState.description);
-                    return null;
-                },
-                "open": (state:ActionState): string => {
+                "open": (state:ActionState): TransitionState | void => {
                     if (state.itemStateKey === 'locked')
                         console.log('You dont have key.');
                     else
                         console.log('It`s already open');
-                    return null;
                 },
-                "unlock": (state:ActionState): string => {
+                "unlock": (state:ActionState): TransitionState | void => {
                     if (state.inventory.key)
-                        return 'unlocked';
+                        return { nextState: 'unlocked' };
                     console.log('You dont have key.');
-                    return null;
                 }
-                // "*": (state:ActionState): string => {
-                //     console.log('Don`t know how to do that, it`s a letterbox for gods sake');
-                //     return null;
-                // }
             }
         },
         "door": {
             "states": {
                 "closed": {
-                    "description": "The door is closed, there is a zombie outside"
-                },
-                "open": {
-                    "description": "The door is open"
+                    "description": "The door is closed."
                 }
             },
             "actions": {
-                "open": (state:ActionState): string => {
-                    return 'open';
-                },
-                "exit": (state:ActionState): string => {
-                    return 'outside';
+                "open": (state:ActionState): TransitionState | void => {
+                    console.log('You open the door, the zombie kills you.');
+                    return { dead: true };
                 }
             }
         }
     },
     "actions": {
-        "check": (state:ActionState): string => {
+        "check": (state:ActionState): TransitionState | void => {
             console.log(state.state.description);
-            console.log('There is a letterbox there.');
-            return null;
+            console.log('There is a letterbox.');
+            console.log('There and a zombie outside.');
+            console.log('A staircase goes up to the 2nd floor.');
         },
-        "onEnter": (state:ActionState): string => {
-            console.log(state.state.description);
-            return null;
-        }
+        // "onEnter": (state:ActionState): TransitionState | void => {
+        //     console.log(state.state.description);
+        // }
     }
 } as WorldInteractable;
