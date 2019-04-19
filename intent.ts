@@ -1,8 +1,12 @@
 
 export enum Actions {
     quit = 'quit',
+    exit = 'exit',
+    inventory = 'inventory',
     check = 'check',
-    exit = 'exit'
+    up = 'up',
+    down = 'down',
+    get = 'get'
 }
 
 export interface ActionForm {
@@ -16,6 +20,15 @@ const actionsForms:ActionForm[] = [{
 }, {
     base: Actions.check,
     alternates: ['look', 'examine', 'investigate', 'look at', 'check out']
+}, {
+    base: Actions.up,
+    alternates: ['walk up', 'go up']
+}, {
+    base: Actions.down,
+    alternates: ['walk down', 'go down']
+}, {
+    base: Actions.get,
+    alternates: ['take', 'grab', 'pick up']
 }];
 
 export class Intent {

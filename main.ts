@@ -3,6 +3,7 @@ import * as readline from 'readline';
 import { Intent, Actions } from './intent';
 
 export interface ActionState {
+    room: WorldInteractable,
     inventory: WorldItems,
     state: WorldInteractable,
     itemStateKey: string,
@@ -25,10 +26,12 @@ interface WorldItems {
 export interface TransitionState {
     nextState?: string,
     nextRoom?: string,
-    dead?: boolean
+    dead?: boolean,
+    addInventory?: string[]
 }
 
 type WorldAction = (state: ActionState) => TransitionState | void;
+type WorldIsAvailable = (state: ActionState) => boolean;
 
 interface WorldActions {
     [index: string]: WorldAction
@@ -38,6 +41,7 @@ export interface WorldInteractable {
     id?: string;
     description?: string;
     active?: boolean;
+    isAvailable?: WorldIsAvailable,
     onActivate?: string;
     states?: WorldStates;
     items?: WorldItems;
@@ -57,12 +61,28 @@ class World {
     }
 
     load() {
-        this.rooms = [require('./rooms/1st-floor').default];
-        this.currentRoom = this.rooms[0];
-        this.gotoRoom(this.currentRoom);
+        this.rooms = [
+            require('./rooms/1st-floor').default,
+            require('./rooms/2nd-floor').default
+        ];
+        this.sanityCheck(this.rooms);
+        this.gotoRoom(this.rooms[0]);
+    }
+
+    sanityCheck(rooms: WorldInteractable[]) {
+        let errors = [];
+        for (let room of rooms) {
+            for (let action in room.actions) {
+                if (!Actions[action])
+                    errors.push(`Action ${action} is not defined in Actions enum`);
+            }
+        }
+        if (errors.length)
+            throw new Error(errors.join('\n'));
     }
 
     gotoRoom(room: WorldInteractable) {
+        this.currentRoom = room;
         let initialStateKey = Object.keys(room.states)[0];
         this.currentState = room.states[initialStateKey];
 
@@ -100,7 +120,7 @@ class World {
         // tranisition state
         if (action) {
             const item = room.items[intent.noun];
-            let itemState = null;
+            let itemState:ActiveState = null;
             if (item)
                 itemState = this.getActiveState(item.states);
 
@@ -115,6 +135,10 @@ class World {
                 else if (nextState.nextRoom) {
                     let nextRoom = this.rooms.find(room => room.id === nextState.nextRoom);
                     this.gotoRoom(nextRoom);
+                }
+                else if (nextState.addInventory) {
+                    for (let inventory of nextState.addInventory)
+                        this.inventory[inventory] = {};
                 }
                 else
                     this.transitionState(parent, nextState);
@@ -152,11 +176,12 @@ class World {
         const itemOrRoomKey = noun;
         const itemOrRoom = itemsOrRooms[itemOrRoomKey];
         if (!itemOrRoom) return null;
+        if (!itemOrRoom.actions) return null;
 
         if (itemOrRoom.actions[action])
             return [itemOrRoom.actions[action], itemOrRoom];
 
-        if (action === 'check') {
+        if (action === Actions.check) {
             console.log(this.getActiveState(itemOrRoom.states).state.description);
             return [()=>{}, itemOrRoom];
         }
@@ -168,11 +193,22 @@ class World {
     }
 
     findMatchingAction(action: string, actions: WorldActions): WorldAction {
-        return actions[action];
+        if (actions[action])
+            return actions[action];
+        switch (action) {
+            case Actions.check:
+                return (state:ActionState): TransitionState | void => console.log(this.getActiveState(state.room.states).state.description);
+                break;
+            case Actions.inventory:
+                return (state:ActionState): TransitionState | void => console.log('You have', Object.keys(state.inventory).join(', ') || 'nothing');
+                break;
+        }
+        return null;
     }
 
     getActionState(item: ActiveState): ActionState {
         return {
+            room: this.currentRoom,
             inventory: this.inventory,
             state: this.currentState,
             itemStateKey: item ? item.stateKey : null,
@@ -183,8 +219,21 @@ class World {
     searchRoomItems(startedWord: any): any {
         const itemKeys = Object.keys(this.currentRoom.items);
         const items = this.currentRoom.items;
-        const itemStateItemKeys = itemKeys.map(itemKey => Object.keys(this.getActiveState(items[itemKey].states).state.items || [])).flat();
-        return itemKeys.concat(itemStateItemKeys).filter(item => item.startsWith(startedWord));
+        const itemStateItemKeys = itemKeys.map(itemKey => {
+            const activeState = this.getActiveState(items[itemKey].states);
+            if (!activeState || !activeState.state) return [];
+            return Object.keys(activeState.state.items || []);
+        }).flat();
+        return [...new Set(itemKeys.concat(itemStateItemKeys))]
+            .filter(itemKey => this.isItemAvailable(items[itemKey]))
+            .filter(itemKey => itemKey.startsWith(startedWord));
+    }
+
+    isItemAvailable(item: WorldInteractable): boolean {
+        if (!item || !item.states) return true;
+        let state = this.getActiveState(item.states);
+        if (!state.state.isAvailable) return true;
+        return state.state.isAvailable(this.getActionState(state));
     }
 }
 
@@ -201,12 +250,13 @@ const rl = readline.createInterface({
     }
 });
 
-rl.setPrompt('adventure> ');
+rl.setPrompt(world.currentRoom.id + '> ');
 rl.prompt();
 rl.on('line', (line) => {
     const intent = world.parseText(line);
     if (intent.action === Actions.quit) rl.close();
     if (!world.transitionIntentToState(intent)) rl.close();
+    rl.setPrompt(world.currentRoom.id + '> ');
     rl.prompt();
 }).on('close', function () {
     process.exit(0);
