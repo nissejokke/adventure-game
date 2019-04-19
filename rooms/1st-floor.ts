@@ -63,10 +63,10 @@ export default {
             "actions": {
                 "read": (state:ActionState): TransitionState | void => {
                     console.log(`Dear Mr. Smith\nThis is a notice of eviction.\n`);
-                    return { addInventory: ['letter'] };
+                    return { addInventory: [[state.itemStateKey, state.itemState]] };
                 },
                 "get": (state:ActionState): TransitionState | void => {
-                    return { addInventory: ['letter'] };
+                    return { addInventory: [[state.itemStateKey, state.itemState]] };
                 }
             }
         },

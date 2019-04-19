@@ -6,6 +6,8 @@ export interface ActionState {
     room: WorldInteractable,
     inventory: WorldItems,
     state: WorldInteractable,
+    item: WorldInteractable,
+    itemKey: string,
     itemStateKey: string,
     itemState: WorldInteractable
 }
@@ -27,7 +29,7 @@ export interface TransitionState {
     nextState?: string,
     nextRoom?: string,
     dead?: boolean,
-    addInventory?: string[]
+    addInventory?: [string, WorldInteractable][]
 }
 
 type WorldAction = (state: ActionState) => TransitionState | void;
@@ -54,10 +56,12 @@ class World {
     currentState: WorldInteractable;
     rooms: WorldInteractable[];
     inventory: WorldItems;
+    actions: WorldActions;
 
     constructor() {
         this.currentRoom = null;
         this.inventory = {};
+        this.actions = {};
     }
 
     load() {
@@ -65,6 +69,8 @@ class World {
             require('./rooms/1st-floor').default,
             require('./rooms/2nd-floor').default
         ];
+        this.actions = {
+        };
         this.sanityCheck(this.rooms);
         this.gotoRoom(this.rooms[0]);
     }
@@ -91,7 +97,7 @@ class World {
 
         const onEnter = room.actions.onEnter;
         if (onEnter)
-            this.transitionState(this.currentState, onEnter(this.getActionState(null)));
+            this.transitionState(this.currentState, onEnter(this.getActionState(null, null)));
     }
 
     parseText(text: string): Intent {
@@ -106,11 +112,20 @@ class World {
         let parent = room;
         let action:WorldAction;
 
-        // intent regarding room items?
-        const match = this.findMatchingInteractableAction(intent.action, intent.noun, room.items);
-        if (match) {
-            action = match[0];
-            parent = match[1];
+        // intent regarding room items
+        const roomItemsMatch = this.findMatchingInteractableAction(intent.action, intent.noun, room.items);
+        if (roomItemsMatch) {
+            action = roomItemsMatch[0];
+            parent = roomItemsMatch[1];
+        }
+
+        // intent regarding inventory items
+        if (!action) {
+            const inventoryMatch = this.findMatchingInteractableAction(intent.action, intent.noun, this.inventory);
+            if (inventoryMatch) {
+                action = inventoryMatch[0];
+                parent = inventoryMatch[1];
+            }
         }
 
         // room intents
@@ -119,12 +134,10 @@ class World {
 
         // tranisition state
         if (action) {
-            const item = room.items[intent.noun];
-            let itemState:ActiveState = null;
-            if (item)
-                itemState = this.getActiveState(item.states);
+            const itemKey = intent.noun;
+            const item = room.items[itemKey];
 
-            const actionState = this.getActionState(itemState);
+            const actionState = this.getActionState(itemKey, item);
             const nextState = action(actionState);
             if (nextState) {
 
@@ -137,8 +150,16 @@ class World {
                     this.gotoRoom(nextRoom);
                 }
                 else if (nextState.addInventory) {
-                    for (let inventory of nextState.addInventory)
-                        this.inventory[inventory] = {};
+                    for (let pair of nextState.addInventory) {
+                        const item = {
+                            [pair[0]]: pair[1]
+                        };
+                        console.log('Added', Object.keys(item)[0], 'to inventory');
+                        this.inventory = {
+                            ...this.inventory,
+                            ...item
+                        };
+                    }
                 }
                 else
                     this.transitionState(parent, nextState);
@@ -172,6 +193,12 @@ class World {
             console.log(next.onActivate);
     }
 
+    /**
+     * Returns match action and item/root
+     * @argument action string  verb like get, read, or go
+     * @argument noun string noun like key, rug or map
+     * @argument itemsOrRooms collection if items or rooms
+     */
     findMatchingInteractableAction(action: string, noun: string, itemsOrRooms: WorldInteractable): [WorldAction, WorldInteractable] {
         const itemOrRoomKey = noun;
         const itemOrRoom = itemsOrRooms[itemOrRoomKey];
@@ -206,34 +233,56 @@ class World {
         return null;
     }
 
-    getActionState(item: ActiveState): ActionState {
+    getActionState(itemKey: string, item: WorldInteractable): ActionState {
+        let activeState:ActiveState = null;
+        if (item) activeState = this.getActiveState(item.states);
         return {
             room: this.currentRoom,
             inventory: this.inventory,
             state: this.currentState,
-            itemStateKey: item ? item.stateKey : null,
-            itemState: item ? item.state : null
+            item: item,
+            itemKey: itemKey,
+            itemStateKey: activeState ? activeState.stateKey : null,
+            itemState: activeState ? activeState.state : null
         };
     }
 
-    searchRoomItems(startedWord: any): any {
+    searchRoomItems(startedWord: string): string[] {
+        // items in room
         const itemKeys = Object.keys(this.currentRoom.items);
         const items = this.currentRoom.items;
+
+        // items accessible via state
         const itemStateItemKeys = itemKeys.map(itemKey => {
             const activeState = this.getActiveState(items[itemKey].states);
             if (!activeState || !activeState.state) return [];
             return Object.keys(activeState.state.items || []);
         }).flat();
-        return [...new Set(itemKeys.concat(itemStateItemKeys))]
-            .filter(itemKey => this.isItemAvailable(items[itemKey]))
-            .filter(itemKey => itemKey.startsWith(startedWord));
+        const inventoryItemKeys = Object.keys(this.inventory);
+
+        const roomItems = [...new Set(itemKeys.concat(itemStateItemKeys))].filter(itemKey => this.isItemAvailable(itemKey, items[itemKey]));
+        const inventoryItems = inventoryItemKeys;
+
+        return [...new Set(roomItems.concat(inventoryItems))].filter(itemKey => itemKey.startsWith(startedWord));
     }
 
-    isItemAvailable(item: WorldInteractable): boolean {
+    isItemAvailable(itemKey: string, item: WorldInteractable): boolean {
         if (!item || !item.states) return true;
         let state = this.getActiveState(item.states);
         if (!state.state.isAvailable) return true;
-        return state.state.isAvailable(this.getActionState(state));
+        return state.state.isAvailable(this.getActionState(itemKey, item));
+    }
+
+    tabComplete(startedWord: string, wordCount: number): string[] {
+        if (wordCount > 1)
+            return this.searchRoomItems(startedWord);
+
+        // let itemActions = [];
+        // for (let itemKey in this.currentRoom.items)
+        //     if (this.isItemAvailable(itemKey, this.currentRoom.items[itemKey]))
+        //         itemActions.push(...Object.keys(this.currentRoom.items[itemKey].actions));
+        // return Object.keys(this.currentRoom.actions).concat(itemActions);
+        return ['check'].filter(action => action.startsWith(startedWord));
     }
 }
 
@@ -245,7 +294,7 @@ const rl = readline.createInterface({
     completer: (line) => {
         const words = line.split(/ /);
         const startedWord = words[words.length - 1];
-        const matches = world.searchRoomItems(startedWord);
+        const matches = world.tabComplete(startedWord, words.length);
         return [matches, startedWord];
     }
 });

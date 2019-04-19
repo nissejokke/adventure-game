@@ -37,19 +37,19 @@ export default {
         "letterbox-key": {
             "states": {
                 "1": {
-                    "description": "It´s a key.",
+                    "description": "It´s a small key.",
                     "isAvailable": (state:ActionState): boolean => {
-                        return state.room.items.rug.states.moved.active && !state.inventory['letterbox-key'];
+                        return state.room.items.rug.states.moved.active && !state.inventory[state.itemKey];
                     }
                 }
             },
             "actions": {
                 "get": (state:ActionState): TransitionState | void => {
-                    if (state.inventory['letterbox-key']) {
+                    if (state.inventory[state.itemKey]) {
                         console.log('You already picked it up.');
                         return;
                     }
-                    return { addInventory: ['letterbox-key'] };
+                    return { addInventory: [[state.itemKey, state.item]] };
                 }
             }
         },
