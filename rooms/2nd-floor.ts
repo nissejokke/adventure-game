@@ -4,19 +4,19 @@ export default {
     "id": "2nd floor",
     "states": {
         "initial": {
-            "onActivate": "Your`re on the 2nd floor",
-            "description": "Your`re on the 2nd floor. There are an apartment door here. Stairs go down to first floor."
+            "onActivate": "Your`re on the 2nd floor. There are an apartment door here. Stairs go down to first floor.",
+            "description": "Your`re on the 2nd floor. There are an apartment door here with a doormat in front. Stairs go down to first floor."
         }
     },
     "items": {
-        "rug": {
+        "doormat": {
             "states": {
                 "1": {
-                    "description": "An old rug outside an apartment door."
+                    "description": "An old doormat outside an apartment door."
                 },
                 "moved": {
-                    "onActivate": "You move the rug out of the way, exposing a letterbox-key.",
-                    "description": "An old rug, moved out of the way.",
+                    "onActivate": "You move the doormat out of the way, exposing a letterbox-key.",
+                    "description": "An old doormat, moved out of the way.",
                     "items": {
                         "letterbox-key": {}
                     }
@@ -31,7 +31,7 @@ export default {
                 },
                 "get": (state:ActionState): TransitionState | void => {
                     console.log('You would`nt want that');
-                },
+                }
             }
         },
         "letterbox-key": {
@@ -39,7 +39,7 @@ export default {
                 "1": {
                     "description": "It´s a small key.",
                     "isAvailable": (state:ActionState): boolean => {
-                        return state.room.items.rug.states.moved.active && !state.inventory[state.itemKey];
+                        return state.room.items.doormat.states.moved.active && !state.inventory[state.itemKey];
                     }
                 }
             },

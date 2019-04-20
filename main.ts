@@ -100,11 +100,18 @@ class World {
             this.transitionState(this.currentState, onEnter(this.getActionState(null, null)));
     }
 
+    /**
+     * Text to intent
+     * 
+     * @param text 
+     */
     parseText(text: string): Intent {
         return new Intent(text);
     }
 
     /**
+     * From intent transition to next state
+     * 
      * @returns quit?
      */
     transitionIntentToState(intent: Intent): boolean {
@@ -170,6 +177,10 @@ class World {
         return true;
     }
 
+    /**
+     * Get active state from a set of states
+     * @param states 
+     */
     getActiveState(states: WorldStates): ActiveState {
         for (let state in states)
             if (states[state].active)
@@ -179,6 +190,12 @@ class World {
         return null;
     }
 
+    /**
+     * Move a room or item to next state
+     * 
+     * @param parent room or item
+     * @param transition next state
+     */
     transitionState(parent: WorldInteractable, transition: TransitionState | void) {
         if (!transition) return;
 
@@ -219,9 +236,15 @@ class World {
         return null;
     }
 
+    /**
+     * From actions return action with name or some default ones
+     * @param action 
+     * @param actions 
+     */
     findMatchingAction(action: string, actions: WorldActions): WorldAction {
         if (actions[action])
             return actions[action];
+
         switch (action) {
             case Actions.check:
                 return (state:ActionState): TransitionState | void => console.log(this.getActiveState(state.room.states).state.description);
@@ -233,6 +256,12 @@ class World {
         return null;
     }
 
+    /**
+     * Get ActionState that is sent to action callbacks
+     * 
+     * @param itemKey optional itemKey (name/id of item) (if action in item and not room) 
+     * @param item optional item (if action in item and not room)
+     */
     getActionState(itemKey: string, item: WorldInteractable): ActionState {
         let activeState:ActiveState = null;
         if (item) activeState = this.getActiveState(item.states);
@@ -247,6 +276,10 @@ class World {
         };
     }
 
+    /**
+     * List of items which starts with given word, from rooms items and inventory items
+     * @param startedWord 
+     */
     searchRoomItems(startedWord: string): string[] {
         // items in room
         const itemKeys = Object.keys(this.currentRoom.items);
@@ -266,6 +299,12 @@ class World {
         return [...new Set(roomItems.concat(inventoryItems))].filter(itemKey => itemKey.startsWith(startedWord));
     }
 
+    /**
+     * Is item available, either by its active state has an isAvailable function which return true or its missing isAvailable 
+     * 
+     * @param itemKey 
+     * @param item 
+     */
     isItemAvailable(itemKey: string, item: WorldInteractable): boolean {
         if (!item || !item.states) return true;
         let state = this.getActiveState(item.states);
@@ -307,6 +346,6 @@ rl.on('line', (line) => {
     if (!world.transitionIntentToState(intent)) rl.close();
     rl.setPrompt(world.currentRoom.id + '> ');
     rl.prompt();
-}).on('close', function () {
+}).on('close', () => {
     process.exit(0);
 });

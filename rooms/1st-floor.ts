@@ -18,8 +18,8 @@ export default {
                     }
                 },
                 "unlocked": {
-                    "onActivate": "You unlocked the letterbox",
-                    "description": "it's unlocked",
+                    "onActivate": "You unlocked the letterbox. There is a letter there.",
+                    "description": "A letterbox. It's unlocked.",
                     "items": {
                         "letter": {}
                     }
@@ -47,26 +47,42 @@ export default {
             },
             "actions": {
                 "open": (state:ActionState): TransitionState | void => {
-                    console.log('You open the door, the zombie kills you.');
-                    return { dead: true };
+                    console.log('There is a zombie outside, you would`nt want that.');
                 }
             }
         },
         "letter": {
             "states": {
                 "in-letterbox": {
+                    "description": "It`s a letter.",
                     "isAvailable": (state:ActionState): boolean => {
-                        return state.room.items.letterbox.states.unlocked.active && !state.inventory['letter'];
+                        return state.room.items.letterbox.states.unlocked.active && !state.inventory[state.itemKey];
                     }
+                },
+                "examined": {
+                    "description": "A letter held together with a paperclick."
                 }
             },
             "actions": {
+                "check": (state:ActionState): TransitionState | void => {
+                    if (state.inventory.letter) {
+                        if (!state.room.items.letter.states.examined)
+                            return { nextState: 'examined' };
+                    }
+                    
+                    console.log(state.state.description);
+                    // console.log(`Dear Mr. Smith\nThis is a notice of eviction.\n`);
+                    // return { addInventory: [[state.itemStateKey, state.itemState]] };
+                },
                 "read": (state:ActionState): TransitionState | void => {
-                    console.log(`Dear Mr. Smith\nThis is a notice of eviction.\n`);
-                    return { addInventory: [[state.itemStateKey, state.itemState]] };
+                    console.log(`Dear Mr. Smith\nThis is a notice of eviction.`);
+                    if (!state.inventory.letter)
+                        return { addInventory: [[state.itemKey, state.item]] };
                 },
                 "get": (state:ActionState): TransitionState | void => {
-                    return { addInventory: [[state.itemStateKey, state.itemState]] };
+                    if (!state.inventory.letter)
+                        return { addInventory: [[state.itemKey, state.item]] };
+                    console.log('You already have it.');
                 }
             }
         },
@@ -77,6 +93,9 @@ export default {
                 }
             },
             "actions": {
+                "kill": (state:ActionState): TransitionState | void => {
+                    console.log('With what? - look dangerous.');
+                },
                 "*": (state:ActionState): TransitionState | void => {
                     console.log('Best to keep away from it - look dangerous.');
                 }
@@ -84,6 +103,9 @@ export default {
         }
     },
     "actions": {
+        "exit": (state:ActionState): TransitionState | void => {
+            console.log('There is a zombie outside, you would`nt want that.');
+        },
         "up": (state:ActionState): TransitionState | void => {
             return { nextRoom: '2nd floor' };
         }
