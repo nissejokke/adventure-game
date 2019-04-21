@@ -15,10 +15,10 @@ export default {
                     "description": "An old doormat outside an apartment door."
                 },
                 "moved": {
-                    "onActivate": "You move the doormat out of the way, exposing a letterbox-key.",
+                    "onActivate": "You move the doormat out of the way, exposing a small-key.",
                     "description": "An old doormat, moved out of the way.",
                     "items": {
-                        "letterbox-key": {}
+                        "small-key": {}
                     }
                 }
             },
@@ -34,7 +34,7 @@ export default {
                 }
             }
         },
-        "letterbox-key": {
+        "small-key": {
             "states": {
                 "1": {
                     "description": "It´s a small key.",

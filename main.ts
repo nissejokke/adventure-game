@@ -29,6 +29,7 @@ export interface TransitionState {
     nextState?: string,
     nextRoom?: string,
     dead?: boolean,
+    removeInventory?: string[],
     addInventory?: [string, WorldInteractable][]
 }
 
@@ -58,7 +59,7 @@ class World {
     inventory: WorldItems;
     actions: WorldActions;
 
-    constructor() {
+    constructor(private verbose:boolean) {
         this.currentRoom = null;
         this.inventory = {};
         this.actions = {};
@@ -118,6 +119,9 @@ class World {
         const room = this.currentRoom;
         let parent = room;
         let action:WorldAction;
+        if (this.verbose) {
+            console.log('INTENT', intent.action, intent.noun);
+        }
 
         // intent regarding room items
         const roomItemsMatch = this.findMatchingInteractableAction(intent.action, intent.noun, room.items);
@@ -152,11 +156,11 @@ class World {
                     console.log('Game over');
                     return false;
                 }
-                else if (nextState.nextRoom) {
+                if (nextState.nextRoom) {
                     let nextRoom = this.rooms.find(room => room.id === nextState.nextRoom);
                     this.gotoRoom(nextRoom);
                 }
-                else if (nextState.addInventory) {
+                if (nextState.addInventory) {
                     for (let pair of nextState.addInventory) {
                         const item = {
                             [pair[0]]: pair[1]
@@ -168,7 +172,11 @@ class World {
                         };
                     }
                 }
-                else
+                if (nextState.removeInventory) {
+                    for (let item of nextState.removeInventory)
+                        delete this.inventory[item];
+                }
+                if (nextState.nextState)
                     this.transitionState(parent, nextState);
             }
         }
@@ -222,8 +230,10 @@ class World {
         if (!itemOrRoom) return null;
         if (!itemOrRoom.actions) return null;
 
-        if (itemOrRoom.actions[action])
+        if (itemOrRoom.actions[action]) {
+            if (this.verbose) console.log('ACTION', action, 'IN', Object.keys(itemOrRoom).join(', '));
             return [itemOrRoom.actions[action], itemOrRoom];
+        }
 
         if (action === Actions.check) {
             console.log(this.getActiveState(itemOrRoom.states).state.description);
@@ -325,7 +335,7 @@ class World {
     }
 }
 
-const world = new World();
+const world = new World(process.argv.some(argv => argv === '-v'));
 world.load();
 const rl = readline.createInterface({
     input: process.stdin,
@@ -349,3 +359,5 @@ rl.on('line', (line) => {
 }).on('close', () => {
     process.exit(0);
 });
+
+process.argv.slice(2).filter(command => !command.startsWith('-')).forEach(command => rl.write(command + '\n'));

@@ -14,7 +14,6 @@ export default {
                 "locked": {
                     "description": "A letterbox mounted to the wall. It's locked.",
                     "items": {
-                        "screw": {}
                     }
                 },
                 "unlocked": {
@@ -33,8 +32,8 @@ export default {
                         console.log('It`s already open');
                 },
                 "unlock": (state:ActionState): TransitionState | void => {
-                    if (state.inventory['letterbox-key'])
-                        return { nextState: 'unlocked' };
+                    if (state.inventory['small-key'])
+                        return { nextState: 'unlocked', removeInventory: ['small-key'] };
                     console.log('You dont have key.');
                 }
             }
@@ -60,22 +59,27 @@ export default {
                     }
                 },
                 "examined": {
-                    "description": "A letter held together with a paperclick."
+                    "onActivate": "A letter with a paperclick.",
+                    "description": "A letter with a paperclick.",
+                    "items": {
+                        "paperclick": {}
+                    }
                 }
             },
             "actions": {
                 "check": (state:ActionState): TransitionState | void => {
+                    //console.log(state.inventory)
                     if (state.inventory.letter) {
-                        if (!state.room.items.letter.states.examined)
+                        if (!state.room.items.letter.states.examined.active)
                             return { nextState: 'examined' };
                     }
                     
-                    console.log(state.state.description);
+                    console.log(state.itemState.description);
                     // console.log(`Dear Mr. Smith\nThis is a notice of eviction.\n`);
                     // return { addInventory: [[state.itemStateKey, state.itemState]] };
                 },
                 "read": (state:ActionState): TransitionState | void => {
-                    console.log(`Dear Mr. Smith\nThis is a notice of eviction.`);
+                    console.log(`Dear Mr. Smith\nThis is a 14 days notice of eviction.`);
                     if (!state.inventory.letter)
                         return { addInventory: [[state.itemKey, state.item]] };
                 },
@@ -83,6 +87,21 @@ export default {
                     if (!state.inventory.letter)
                         return { addInventory: [[state.itemKey, state.item]] };
                     console.log('You already have it.');
+                }
+            }
+        },
+        "paperclip": {
+            "states": {
+                "1": {
+                    "description": "A robust steel paperclick",
+                    "isAvailable": (state:ActionState): boolean => {
+                        return state.room.items.letter.states.examined.active;
+                    }
+                }
+            },
+            "actions": {
+                "get": (state:ActionState): TransitionState | void => {
+                    return { addInventory: [[state.itemKey, state.item]] };
                 }
             }
         },
