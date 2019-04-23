@@ -69,7 +69,7 @@ export default {
             "actions": {
                 "check": (state:ActionState): TransitionState | void => {
                     if (state.inventory.letter) {
-                        if (!state.room.items.letter.states.examined.active)
+                        if (!state.inventory.letter.states.examined.active)
                             return { nextState: 'examined' };
                     }
                     

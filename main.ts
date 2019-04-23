@@ -1,5 +1,6 @@
 import './polyfills';
 import * as readline from 'readline';
+import 'colors';
 import { Intent, Actions } from './intent';
 
 export interface ActionState {
@@ -51,6 +52,13 @@ export interface WorldInteractable {
     actions?: WorldActions;
 }
 
+enum LogType {
+    info,
+    description,
+    action,
+    debug
+}
+
 class World {
 
     currentRoom: WorldInteractable;
@@ -94,7 +102,7 @@ class World {
         this.currentState = room.states[initialStateKey];
 
         if (this.currentState.onActivate)
-            console.log(this.currentState.onActivate);
+            this.log(this.currentState.onActivate, LogType.description);
 
         const onEnter = room.actions.onEnter;
         if (onEnter)
@@ -110,6 +118,39 @@ class World {
         return new Intent(text);
     }
 
+    log(text:string, type:LogType = LogType.description) {
+        switch(type) {
+            case LogType.description: 
+                console.log(text.yellow);
+                break;
+            case LogType.debug:
+                if (this.verbose) console.log(text.grey);
+                break;
+            case LogType.action:
+                console.log(text.green);
+                break;
+            default:
+                console.log(text);
+        }
+    }
+
+    logDebug(...text:string[]) {
+        this.log(text.join(' '), LogType.debug);
+    }
+
+    logDescription(...text:string[]) {
+        this.log(text.join(' '), LogType.description);
+    }
+
+    logAction(...text:string[]) {
+        this.log(text.join(' '), LogType.action);
+    }
+
+    logInfo(...text:string[]) {
+        this.log(text.join(' '), LogType.info);
+    }
+
+
     /**
      * From intent transition to next state
      * 
@@ -119,10 +160,8 @@ class World {
         const room = this.currentRoom;
         let parent = room;
         let action:WorldAction;
-        if (this.verbose) {
-            console.log('INTENT ACTION', intent.action, 'NOUN', intent.noun);
-            console.log('CHECKING room items:', Object.keys(room.items).join(', '));
-        }
+        this.logDebug('INTENT ACTION', intent.action, 'NOUN', intent.noun);
+        this.logDebug('CHECKING room items:', Object.keys(room.items).join(', '));
 
         // intent regarding room items
         const roomItemsMatch = this.findMatchingInteractableAction(intent.action, intent.noun, room.items);
@@ -133,8 +172,7 @@ class World {
 
         // intent regarding inventory items
         if (!action) {
-            if (this.verbose)
-                console.log('CHECKING inventory items:', Object.keys(this.inventory).join(' '));
+            this.logDebug('CHECKING inventory items:', Object.keys(this.inventory).join(' '));
             const inventoryMatch = this.findMatchingInteractableAction(intent.action, intent.noun, { 
                 inventory: {
                     states: {},
@@ -166,7 +204,7 @@ class World {
             if (nextState) {
 
                 if (nextState.dead) {
-                    console.log('Game over');
+                    this.logInfo('Game over');
                     return false;
                 }
                 if (nextState.nextRoom) {
@@ -178,7 +216,7 @@ class World {
                         const item = {
                             [pair[0]]: pair[1]
                         };
-                        console.log('Added', Object.keys(item)[0], 'to inventory');
+                        this.logAction('Added', Object.keys(item)[0], 'to inventory');
                         this.inventory = {
                             ...this.inventory,
                             ...item
@@ -194,7 +232,7 @@ class World {
             }
         }
         else
-            console.log('Don`t know how to do that. (', intent.action, intent.noun, ')');
+            this.logInfo('Don`t know how to do that. (', intent.action, intent.noun, ')');
         return true;
     }
 
@@ -228,7 +266,7 @@ class World {
             parent.states[currstate].active = false;
         next.active = true;
         if (next.onActivate)
-            console.log(next.onActivate);
+            this.logDescription(next.onActivate);
     }
 
     /**
@@ -243,20 +281,19 @@ class World {
 
         if (!itemOrRoom) return null;
         if (!itemOrRoom.actions) {
-            if (this.verbose)
-                console.log('ACTIONS MISSING IN', itemsOrRooms);
+            this.logDebug('ACTIONS MISSING IN', Object.keys(itemsOrRooms).join(', '));
             return null;
         }
 
         if (itemOrRoom.actions[action]) {
-            if (this.verbose) console.log('ACTION', action, 'IN', Object.keys(itemOrRoom).join(', '));
+            if (this.verbose) this.logDebug('ACTION', action, 'IN', Object.keys(itemOrRoom).join(', '));
             return [itemOrRoom.actions[action], itemOrRoom];
         }
         else if (action === Actions.check) {
-            return [(state:ActionState): TransitionState | void => console.log(state.itemState.description), itemOrRoom];
+            return [(state:ActionState): TransitionState | void => this.logDescription(state.itemState.description), itemOrRoom];
         }
         else if (this.verbose)
-            console.log('NO ACTION', action, 'FOUND IN', Object.keys(itemOrRoom.actions).join(', '));
+            this.logDebug('NO ACTION', action, 'FOUND IN', Object.keys(itemOrRoom.actions).join(', '));
 
         if (itemOrRoom.actions['*'])
             return [itemOrRoom.actions['*'], itemOrRoom];
@@ -275,7 +312,7 @@ class World {
 
         switch (action) {
             case Actions.check:
-                return (state:ActionState): TransitionState | void => console.log(this.getActiveState(state.room.states).state.description);
+                return (state:ActionState): TransitionState | void => this.logDescription(this.getActiveState(state.room.states).state.description);
                 break;
             case Actions.inventory:
                 return (state:ActionState): TransitionState | void => this.logInventory(state.inventory);
@@ -285,7 +322,7 @@ class World {
     }
 
     logInventory(inventory:object): void {
-        console.log('You have', Object.keys(inventory).join(', ') || 'nothing');
+        this.logDescription('You have', Object.keys(inventory).join(', ') || 'nothing');
     }
 
     /**
