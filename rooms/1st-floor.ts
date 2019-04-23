@@ -68,15 +68,12 @@ export default {
             },
             "actions": {
                 "check": (state:ActionState): TransitionState | void => {
-                    //console.log(state.inventory)
                     if (state.inventory.letter) {
                         if (!state.room.items.letter.states.examined.active)
                             return { nextState: 'examined' };
                     }
                     
                     console.log(state.itemState.description);
-                    // console.log(`Dear Mr. Smith\nThis is a notice of eviction.\n`);
-                    // return { addInventory: [[state.itemStateKey, state.itemState]] };
                 },
                 "read": (state:ActionState): TransitionState | void => {
                     console.log(`Dear Mr. Smith\nThis is a 14 days notice of eviction.`);
@@ -93,7 +90,7 @@ export default {
         "paperclip": {
             "states": {
                 "1": {
-                    "description": "A robust steel paperclick",
+                    "description": "A robust paperclick",
                     "isAvailable": (state:ActionState): boolean => {
                         return state.room.items.letter.states.examined.active;
                     }

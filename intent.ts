@@ -19,7 +19,7 @@ const actionsForms:ActionForm[] = [{
     alternates: ['go out', 'leave']
 }, {
     base: Actions.check,
-    alternates: ['look', 'examine', 'investigate', 'look at', 'check out']
+    alternates: ['look', 'examine', 'investigate', 'look at', 'check out', 'show']
 }, {
     base: Actions.up,
     alternates: ['walk up', 'go up']

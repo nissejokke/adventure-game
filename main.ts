@@ -120,7 +120,8 @@ class World {
         let parent = room;
         let action:WorldAction;
         if (this.verbose) {
-            console.log('INTENT', intent.action, intent.noun);
+            console.log('INTENT ACTION', intent.action, 'NOUN', intent.noun);
+            console.log('CHECKING room items:', Object.keys(room.items).join(', '));
         }
 
         // intent regarding room items
@@ -132,7 +133,19 @@ class World {
 
         // intent regarding inventory items
         if (!action) {
-            const inventoryMatch = this.findMatchingInteractableAction(intent.action, intent.noun, this.inventory);
+            if (this.verbose)
+                console.log('CHECKING inventory items:', Object.keys(this.inventory).join(' '));
+            const inventoryMatch = this.findMatchingInteractableAction(intent.action, intent.noun, { 
+                inventory: {
+                    states: {},
+                    actions: {
+                        check: (state:ActionState): TransitionState | void => {
+                            this.logInventory(state.inventory);
+                        } 
+                    }
+                },
+                ...this.inventory
+            });
             if (inventoryMatch) {
                 action = inventoryMatch[0];
                 parent = inventoryMatch[1];
@@ -224,21 +237,26 @@ class World {
      * @argument noun string noun like key, rug or map
      * @argument itemsOrRooms collection if items or rooms
      */
-    findMatchingInteractableAction(action: string, noun: string, itemsOrRooms: WorldInteractable): [WorldAction, WorldInteractable] {
+    findMatchingInteractableAction(action: string, noun: string, itemsOrRooms: WorldItems): [WorldAction, WorldInteractable] {
         const itemOrRoomKey = noun;
         const itemOrRoom = itemsOrRooms[itemOrRoomKey];
+
         if (!itemOrRoom) return null;
-        if (!itemOrRoom.actions) return null;
+        if (!itemOrRoom.actions) {
+            if (this.verbose)
+                console.log('ACTIONS MISSING IN', itemsOrRooms);
+            return null;
+        }
 
         if (itemOrRoom.actions[action]) {
             if (this.verbose) console.log('ACTION', action, 'IN', Object.keys(itemOrRoom).join(', '));
             return [itemOrRoom.actions[action], itemOrRoom];
         }
-
-        if (action === Actions.check) {
-            console.log(this.getActiveState(itemOrRoom.states).state.description);
-            return [()=>{}, itemOrRoom];
+        else if (action === Actions.check) {
+            return [(state:ActionState): TransitionState | void => console.log(state.itemState.description), itemOrRoom];
         }
+        else if (this.verbose)
+            console.log('NO ACTION', action, 'FOUND IN', Object.keys(itemOrRoom.actions).join(', '));
 
         if (itemOrRoom.actions['*'])
             return [itemOrRoom.actions['*'], itemOrRoom];
@@ -260,10 +278,14 @@ class World {
                 return (state:ActionState): TransitionState | void => console.log(this.getActiveState(state.room.states).state.description);
                 break;
             case Actions.inventory:
-                return (state:ActionState): TransitionState | void => console.log('You have', Object.keys(state.inventory).join(', ') || 'nothing');
+                return (state:ActionState): TransitionState | void => this.logInventory(state.inventory);
                 break;
         }
         return null;
+    }
+
+    logInventory(inventory:object): void {
+        console.log('You have', Object.keys(inventory).join(', ') || 'nothing');
     }
 
     /**
@@ -301,7 +323,7 @@ class World {
             if (!activeState || !activeState.state) return [];
             return Object.keys(activeState.state.items || []);
         }).flat();
-        const inventoryItemKeys = Object.keys(this.inventory);
+        const inventoryItemKeys = Object.keys(this.inventory).concat('inventory');
 
         const roomItems = [...new Set(itemKeys.concat(itemStateItemKeys))].filter(itemKey => this.isItemAvailable(itemKey, items[itemKey]));
         const inventoryItems = inventoryItemKeys;
