@@ -1,6 +1,5 @@
-import './polyfills';
 import * as readline from 'readline';
-import 'colors';
+import * as colors from 'colors/safe';
 import { Intent, Actions } from './intent';
 
 export interface ActionState {
@@ -121,13 +120,13 @@ class World {
     log(text:string, type:LogType = LogType.description) {
         switch(type) {
             case LogType.description: 
-                console.log(text.yellow);
+                console.log(colors.yellow(text));
                 break;
             case LogType.debug:
-                if (this.verbose) console.log(text.grey);
+                if (this.verbose) console.log(colors.grey(text));
                 break;
             case LogType.action:
-                console.log(text.green);
+                console.log(colors.green(text));
                 break;
             default:
                 console.log(text);

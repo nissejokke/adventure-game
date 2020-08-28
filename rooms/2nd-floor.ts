@@ -4,8 +4,8 @@ export default {
     "id": "2nd floor",
     "states": {
         "initial": {
-            "onActivate": "Your`re on the 2nd floor. There are an apartment door here. Stairs go down to first floor.",
-            "description": "Your`re on the 2nd floor. There are an apartment door here with a doormat in front. Stairs go down to first floor."
+            "onActivate": "Your`re on the 2nd floor.\nThere are an apartment door here. Stairs go down to first floor.",
+            "description": "Your`re on the 2nd floor.\nThere are an apartment door here with a doormat in front. Stairs go down to first floor."
         }
     },
     "items": {

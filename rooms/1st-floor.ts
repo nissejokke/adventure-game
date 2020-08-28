@@ -4,8 +4,8 @@ export default {
     "id": "1st floor",
     "states": {
         "initial": {
-            "onActivate": "Your`re standing in the entrance of a apartment building. There is a zombie outside. A letterbox. Stairs go up.",
-            "description": "Your`re standing in the entrance of a apartment building. There is a zombie outside. A letterbox. Stairs go up."
+            "onActivate": "Your`re standing in the entrance of an apartment building.\nThere is a zombie outside. A letterbox. Stairs go up.",
+            "description": "Your`re standing in the entrance of an apartment building.\nThere is a zombie outside. A letterbox. Stairs go up."
         }
     },
     "items": {
@@ -34,7 +34,7 @@ export default {
                 "unlock": (state:ActionState): TransitionState | void => {
                     if (state.inventory['small-key'])
                         return { nextState: 'unlocked', removeInventory: ['small-key'] };
-                    console.log('You dont have key.');
+                    console.log('You dont have a key.');
                 }
             }
         },
@@ -46,7 +46,7 @@ export default {
             },
             "actions": {
                 "open": (state:ActionState): TransitionState | void => {
-                    console.log('There is a zombie outside, you would`nt want that.');
+                    console.log('There is a zombie outside, you wouldn`t want that.');
                 }
             }
         },
@@ -120,7 +120,7 @@ export default {
     },
     "actions": {
         "exit": (state:ActionState): TransitionState | void => {
-            console.log('There is a zombie outside, you would`nt want that.');
+            console.log('There is a zombie outside, you wouldn´t want that.');
         },
         "up": (state:ActionState): TransitionState | void => {
             return { nextRoom: '2nd floor' };
