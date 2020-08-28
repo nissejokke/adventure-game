@@ -34,7 +34,7 @@ export default {
                 "unlock": (state:ActionState): TransitionState | void => {
                     if (state.inventory['small-key'])
                         return { nextState: 'unlocked', removeInventory: ['small-key'] };
-                    console.log('You dont have a key.');
+                    console.log('You don`t have a key.');
                 }
             }
         },

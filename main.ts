@@ -75,7 +75,8 @@ class World {
     load() {
         this.rooms = [
             require('./rooms/1st-floor').default,
-            require('./rooms/2nd-floor').default
+            require('./rooms/2nd-floor').default,
+            require('./rooms/apartment').default
         ];
         this.actions = {
         };
@@ -260,7 +261,7 @@ class World {
         const nextState = transition.nextState;
         let next = parent.states[nextState];
         if (!next)
-            throw new Error(`Could not transition from ${parent.description || parent} to ${nextState}`);
+            throw new Error(`Could not transition from ${parent.description || JSON.stringify(parent)} to ${nextState}, available states: ${Object.keys(parent.states)}`);
         for (let currstate in parent.states)
             parent.states[currstate].active = false;
         next.active = true;
@@ -284,9 +285,12 @@ class World {
             return null;
         }
 
-        if (itemOrRoom.actions[action]) {
+        const allActions = Object.keys(itemOrRoom.actions);
+        const matchingActionString = allActions.find(actionString => this.actionInActionString(action, actionString));
+
+        if (matchingActionString) {
             if (this.verbose) this.logDebug('ACTION', action, 'IN', Object.keys(itemOrRoom).join(', '));
-            return [itemOrRoom.actions[action], itemOrRoom];
+            return [itemOrRoom.actions[matchingActionString], itemOrRoom];
         }
         else if (action === Actions.check) {
             return [(state:ActionState): TransitionState | void => this.logDescription(state.itemState.description), itemOrRoom];
@@ -308,7 +312,7 @@ class World {
     findMatchingAction(action: string, actions: WorldActions): WorldAction {
         if (actions[action])
             return actions[action];
-
+            
         switch (action) {
             case Actions.check:
                 return (state:ActionState): TransitionState | void => this.logDescription(this.getActiveState(state.room.states).state.description);
@@ -318,6 +322,11 @@ class World {
                 break;
         }
         return null;
+    }
+
+    actionInActionString(action: string, actionString: string): boolean {
+        const synActions = actionString.split('|');
+        return Boolean(synActions.find(synA => action === synA));
     }
 
     logInventory(inventory:object): void {

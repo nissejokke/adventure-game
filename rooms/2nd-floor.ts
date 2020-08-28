@@ -1,4 +1,5 @@
 import { WorldInteractable, ActionState, TransitionState } from "../main";
+import { nextTick } from "process";
 
 export default {
     "id": "2nd floor",
@@ -38,13 +39,13 @@ export default {
             "states": {
                 "1": {
                     "description": "It´s a small key.",
-                    "isAvailable": (state:ActionState): boolean => {
+                    "isAvailable": (state: ActionState): boolean => {
                         return state.room.items.doormat.states.moved.active && !state.inventory[state.itemKey];
                     }
                 }
             },
             "actions": {
-                "get": (state:ActionState): TransitionState | void => {
+                "get": (state: ActionState): TransitionState | void => {
                     if (state.inventory[state.itemKey]) {
                         console.log('You already picked it up.');
                         return;
@@ -55,8 +56,30 @@ export default {
         },
         "door": {
             "states": {
-                "1": {
+                "locked": {
                     "description": "\"Mr. Smith\""
+                },
+                "unlocked": {
+                    "description": "\Mr. Smith\" apartment door, picked with a paperclip."
+                }
+            },
+            "actions": {
+                "open": (state:ActionState): TransitionState | void => {
+                    if (state.itemStateKey === 'locked')
+                        console.log('It`s locked.');
+                    else
+                        console.log('It`s already open');
+                },
+                "paperclip|use paperclip|pick": (state:ActionState): TransitionState | void => {
+                    if (state.inventory['paperclip'])
+                        return { nextState: 'unlocked', removeInventory: ['paperclip'] };
+                    console.log('You dont have that.');
+                },
+                "enter": (state:ActionState): TransitionState | void => {
+                    if (state.itemStateKey === 'unlocked') 
+                        return { nextRoom: 'apartment' };
+                    else
+                        console.log('The door is locked');
                 }
             }
         }
