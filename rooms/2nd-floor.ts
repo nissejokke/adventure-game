@@ -61,18 +61,25 @@ export default {
                 },
                 "unlocked": {
                     "description": "\Mr. Smith\" apartment door, picked with a paperclip."
+                },
+                "open": {
+                    "description": "\Mr. Smith\" apartment door is open."
                 }
             },
             "actions": {
                 "open": (state:ActionState): TransitionState | void => {
                     if (state.itemStateKey === 'locked')
                         console.log('It`s locked.');
-                    else
+                    else if (state.itemStateKey === 'open')
                         console.log('It`s already open');
+                    else if (state.itemStateKey === 'unlocked')
+                        return { nextRoom: 'apartment' };
                 },
-                "paperclip|use paperclip|pick": (state:ActionState): TransitionState | void => {
-                    if (state.inventory['paperclip'])
+                "paperclip|pick": (state:ActionState): TransitionState | void => {
+                    if (state.inventory['paperclip']) {
+                        console.log('You gently insert the paperclip in the keyhole, beginning to twist and turn.\nAfter a while you manage to turn the mechanism and unlock the door.');
                         return { nextState: 'unlocked', removeInventory: ['paperclip'] };
+                    }
                     console.log('You dont have that.');
                 },
                 "enter": (state:ActionState): TransitionState | void => {
